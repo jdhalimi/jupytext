@@ -1,7 +1,7 @@
-import jupytext
 from testfixtures import compare
+import jupytext
 
-jupytext.file_format_version.FILE_FORMAT_VERSION = {}
+jupytext.header.INSERT_AND_CHECK_VERSION_NUMBER = False
 
 
 def test_read_simple_file(julia='''"""
@@ -24,7 +24,7 @@ cube(x)
 # And a markdown comment
 '''):
     nb = jupytext.reads(julia, ext='.jl')
-    assert nb.metadata == {'main_language': 'julia'}
+    assert nb.metadata['jupytext']['main_language'] == 'julia'
     assert len(nb.cells) == 3
     assert nb.cells[0].cell_type == 'code'
     assert nb.cells[0].source == '''"""

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
-import jupytext
+from nbformat.v4.nbbase import new_markdown_cell, new_notebook
 from testfixtures import compare
+import jupytext
+from jupytext.compare import compare_notebooks
 
-jupytext.file_format_version.FILE_FORMAT_VERSION = {}
+jupytext.header.INSERT_AND_CHECK_VERSION_NUMBER = False
 
 
 def test_read_simple_file(pynb="""# ---
@@ -131,7 +133,7 @@ a + 2
 
 def test_read_cell_explicit_start(pynb='''
 import pandas as pd
-# +
+# + {}
 def data():
     return pd.DataFrame({'A': [0, 1]})
 
@@ -495,3 +497,45 @@ d = 6
     script2 = jupytext.writes(notebook, ext='.py')
 
     compare(script, script2)
+
+
+def test_notebook_two_blank_lines_before_next_cell(script="""# +
+# This is cell with a function
+
+def f(x):
+    return 4
+
+
+# +
+# Another cell
+c = 5
+
+
+def g(x):
+    return 6
+
+
+# +
+# Final cell
+
+1 + 1
+"""):
+    notebook = jupytext.reads(script, ext='.py')
+    assert len(notebook.cells) == 3
+    for cell in notebook.cells:
+        lines = cell.source.splitlines()
+        if len(lines) != 1:
+            assert lines[0]
+            assert lines[-1]
+
+    script2 = jupytext.writes(notebook, ext='.py')
+
+    compare(script, script2)
+
+
+def test_round_trip_markdown_cell_with_magic():
+    notebook = new_notebook(cells=[new_markdown_cell('IPython has magic commands like\n%quickref')],
+                            metadata={'jupytext': {'main_language': 'python'}})
+    text = jupytext.writes(notebook, ext='.py')
+    notebook2 = jupytext.reads(text, ext='.py')
+    compare_notebooks(notebook, notebook2)

@@ -1,19 +1,17 @@
-import pytest
 from nbformat.v4.nbbase import new_notebook, new_raw_cell, new_markdown_cell
+import mock
+from testfixtures import compare
 import jupytext
-from jupytext.jupytext import TextNotebookReader, TextNotebookWriter
+from jupytext.header import uncomment_line, header_to_metadata_and_cell, metadata_and_cell_to_header
+from jupytext.formats import get_format
 
-jupytext.file_format_version.FILE_FORMAT_VERSION = {}
-
-
-@pytest.fixture
-def reader():
-    return TextNotebookReader(ext='.Rmd')
+jupytext.header.INSERT_AND_CHECK_VERSION_NUMBER = False
 
 
-@pytest.fixture
-def writer():
-    return TextNotebookWriter(ext='.Rmd')
+def test_uncomment():
+    assert uncomment_line('# line one', '#') == 'line one'
+    assert uncomment_line('#line two', '#') == 'line two'
+    assert uncomment_line('#line two', '') == '#line two'
 
 
 def test_header_to_metadata_and_cell_blank_line():
@@ -24,7 +22,7 @@ title: Sample header
 Header is followed by a blank line
 """
     lines = text.splitlines()
-    metadata, cell, pos = reader().header_to_metadata_and_cell(lines)
+    metadata, cell, pos = header_to_metadata_and_cell(lines, '')
 
     assert metadata == {}
     assert cell.cell_type == 'raw'
@@ -42,7 +40,7 @@ title: Sample header
 Header is not followed by a blank line
 """
     lines = text.splitlines()
-    metadata, cell, pos = reader().header_to_metadata_and_cell(lines)
+    metadata, cell, pos = header_to_metadata_and_cell(lines, '')
 
     assert metadata == {}
     assert cell.cell_type == 'raw'
@@ -61,7 +59,7 @@ jupyter:
 ---
 """
     lines = text.splitlines()
-    metadata, cell, pos = reader().header_to_metadata_and_cell(lines)
+    metadata, cell, pos = header_to_metadata_and_cell(lines, '')
 
     assert metadata == {'mainlanguage': 'python'}
     assert cell.cell_type == 'raw'
@@ -74,21 +72,34 @@ title: Sample header
 
 def test_metadata_and_cell_to_header():
     nb = new_notebook(
-        metadata=dict(mainlanguage='python'),
-        cells=[new_raw_cell(
-            source="---\ntitle: Sample header\n---",
-            metadata={'noskipline': True})])
-    header = writer().metadata_and_cell_to_header(nb)
+        metadata={'jupytext': {'mainlanguage': 'python'}},
+        cells=[new_raw_cell(source="---\ntitle: Sample header\n---", metadata={'noskipline': True})])
+    header = metadata_and_cell_to_header(nb, get_format('.md'), '.md')
     assert '\n'.join(header) == """---
 title: Sample header
 jupyter:
-  mainlanguage: python
+  jupytext:
+    mainlanguage: python
 ---"""
     assert nb.cells == []
 
 
 def test_metadata_and_cell_to_header2():
     nb = new_notebook(cells=[new_markdown_cell(source="Some markdown\ntext")])
-    header = writer().metadata_and_cell_to_header(nb)
+    header = metadata_and_cell_to_header(nb, get_format('.md'), '.md')
     assert header == []
     assert len(nb.cells) == 1
+
+
+def test_notebook_from_plain_script_has_metadata_filter(script="""print('Hello world")
+"""):
+    with mock.patch('jupytext.header.INSERT_AND_CHECK_VERSION_NUMBER', True):
+        nb = jupytext.reads(script, '.py', freeze_metadata=True)
+    assert nb.metadata.get('jupytext', {}).get('metadata_filter', {}).get('notebook') == {
+        'additional': [], 'excluded': 'all'}
+    assert nb.metadata.get('jupytext', {}).get('metadata_filter', {}).get('cells') == {
+        'additional': [], 'excluded': 'all'}
+    with mock.patch('jupytext.header.INSERT_AND_CHECK_VERSION_NUMBER', True):
+        scripts2 = jupytext.writes(nb, '.py')
+
+    compare(script, scripts2)

@@ -1,14 +1,20 @@
 from os import path
 from io import open
+import re
 from setuptools import setup, find_packages
 
 this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
+with open(path.join(this_directory, 'jupytext/version.py')) as f:
+    version_file = f.read()
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
+    version = version_match.group(1)
+
 setup(
     name='jupytext',
-    version='0.6.5',
+    version=version,
     author='Marc Wouts',
     author_email='marc.wouts@gmail.com',
     description='Jupyter notebooks as Markdown documents, '
@@ -17,11 +23,7 @@ setup(
     long_description_content_type='text/markdown',
     url='https://github.com/mwouts/jupytext',
     packages=find_packages(),
-    entry_points={'console_scripts': ['jupytext = jupytext.cli:jupytext'],
-                  'nbconvert.exporters':
-                      ['rmarkdown = jupytext:RMarkdownExporter',
-                       'pynotebook = jupytext:PyNotebookExporter',
-                       'rnotebook = jupytext:RNotebookExporter']},
+    entry_points={'console_scripts': ['jupytext = jupytext.cli:jupytext']},
     tests_require=['pytest'],
     install_requires=['nbformat>=4.0.0', 'mock', 'pyyaml', 'testfixtures'],
     license='MIT',

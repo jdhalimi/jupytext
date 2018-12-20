@@ -2,8 +2,9 @@ import pytest
 from testfixtures import compare
 from nbformat.v4.nbbase import new_notebook, new_code_cell, new_markdown_cell
 import jupytext
+from jupytext.compare import compare_notebooks
 
-jupytext.file_format_version.FILE_FORMAT_VERSION = {}
+jupytext.header.INSERT_AND_CHECK_VERSION_NUMBER = False
 
 
 @pytest.mark.parametrize('blank_lines', range(1, 6))
@@ -23,9 +24,9 @@ def test_notebook_with_empty_cells(blank_cells):
                                   [new_code_cell('')] * blank_cells +
                                   [new_markdown_cell('markdown cell two')] +
                                   [new_code_cell('')] * blank_cells,
-                            metadata={'main_language': 'python'})
+                            metadata={'jupytext': {'main_language': 'python'}})
 
     script = jupytext.writes(notebook, ext='.py')
     notebook2 = jupytext.reads(script, ext='.py')
 
-    compare(notebook, notebook2)
+    compare_notebooks(notebook, notebook2)

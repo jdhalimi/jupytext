@@ -1,5 +1,6 @@
-jupytext>=0.6.5
+jupytext
 plotly
 matplotlib
 pandas
 wbdata
+bash_kernel

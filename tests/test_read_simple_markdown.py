@@ -1,7 +1,7 @@
 from testfixtures import compare
 import jupytext
 
-jupytext.file_format_version.FILE_FORMAT_VERSION = {}
+jupytext.header.INSERT_AND_CHECK_VERSION_NUMBER = False
 
 
 def test_read_mostly_py_markdown_file(markdown="""---
@@ -31,7 +31,7 @@ cat(stringi::stri_rand_lipsum(3), sep='\n\n')
 ```
 """):
     nb = jupytext.reads(markdown, ext='.md')
-    assert nb.metadata == {'main_language': 'python'}
+    assert nb.metadata['jupytext']['main_language'] == 'python'
     compare(nb.cells, [{'cell_type': 'raw',
                         'source': '---\ntitle: Simple file\n---',
                         'metadata': {}},
@@ -91,5 +91,16 @@ In markdown cells it is escaped like here:
 ```python cell_name
 1 + 1
 %matplotlib inline''')
+    markdown2 = jupytext.writes(nb, ext='.md')
+    compare(markdown, markdown2)
+
+
+def test_read_julia_notebook(markdown="""```julia
+1 + 1
+```
+"""):
+    nb = jupytext.reads(markdown, ext='.md')
+    assert len(nb.cells) == 1
+    assert nb.cells[0].cell_type == 'code'
     markdown2 = jupytext.writes(nb, ext='.md')
     compare(markdown, markdown2)
